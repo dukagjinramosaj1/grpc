@@ -1,9 +1,9 @@
-# gRPC Implementations 
+## gRPC Implementations 
 
-##  gRPC UNARY 
+###  gRPC UNARY 
 
-## gRPC Server Streaming 
+### gRPC Server Streaming 
 
-## gRPC Client Streaming
+### gRPC Client Streaming
 
-## gRPC Bi-Directional Streaming
+### gRPC Bi-Directional Streaming
