@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 
 	"github.com/grpc/calculator/calculatorpb"
@@ -20,13 +21,14 @@ func main() {
 
 	defer cc.Close()
 
-	c := calculatorpb.NewSumServiceClient(cc)
+	c := calculatorpb.NewCalculatorServiceClient(cc)
 	// fmt.Printf("Created clinet %f", c)
 
-	doUnary(c)
+	// doUnary(c)
+	doServerStreaming(c)
 }
 
-func doUnary(c calculatorpb.SumServiceClient) {
+func doUnary(c calculatorpb.CalculatorServiceClient) {
 	fmt.Println("STARTING to do a SUM UNARY RPC...")
 
 	req := &calculatorpb.SumRequest{
@@ -37,5 +39,28 @@ func doUnary(c calculatorpb.SumServiceClient) {
 	if err != nil {
 		log.Fatalf("Error while calling SUM RPC: %v", err)
 	}
-	log.Printf("Response from Greet: %v", res.SumResult)
+	log.Printf("Response from SUM: %v", res.SumResult)
+}
+
+func doServerStreaming(c calculatorpb.CalculatorServiceClient) {
+	fmt.Println("STARTING to do a PRIMEDECOMPOSITION SERVER STREAMINGRPC...")
+
+	req := &calculatorpb.PrimeNumberDecompositionRequest{
+		Number: 36,
+	}
+
+	stream, err := c.PrimeNumberDecomposition(context.Background(), req)
+	if err != nil {
+		log.Fatalf("Error while calling PRIMEDECOMPOSITION RPC: %v", err)
+	}
+	for {
+		res, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("SOMETHING HAPPENED %v", err)
+		}
+		fmt.Println(res.GetPrimeFactor())
+	}
 }
