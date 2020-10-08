@@ -31,11 +31,20 @@ message ComputeAverageResponse{
     double result = 1;
 } 
 
+
+message FindMaxRequest{
+    int32 number = 1;
+}
+
+message FindMaxResponse{
+    int32 curr_max = 1;
+}
+
 service CalculatorService{
     rpc Sum(SumRequest) returns (SumResponse){};
     rpc PrimeNumberDecomposition (PrimeNumberDecompositionRequest) returns (stream PrimeNumberDecompositionResponse){};
     rpc ComputeAverage( stream ComputeAverageRequest) returns (ComputeAverageResponse){};
-    
+    rpc FindMax(stream FindMaxRequest) returns (stream FindMaxResponse){};
 
 }
 
