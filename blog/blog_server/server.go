@@ -34,10 +34,51 @@ type blogItem struct {
 	Title    string             `bson:"title"`
 }
 
-func (*server) ReadBlog(ctx context.Context, req *blogpb.ReadBlogRequest) (*blogpb.ReadBlogResponse, error) {
-	fmt.Println("READ BLOG REQUEST was INVOKED")
-	blogID := req.GetBlogId()
+func (*server) UpdateBlog(ctx context.Context, req *blogpb.UpdateBlogRequest) (*blogpb.UpdateBlogResponse, error) {
+	fmt.Println("UPDATE BLOG REQUEST")
+	blog := req.GetBlog()
+	oid, err := primitive.ObjectIDFromHex(blog.GetId())
+	if err != nil {
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			fmt.Sprintf("Cannot parse ID"),
+		)
+	}
+	//Create an empty struct
+	data := &blogItem{}
+	filter := bson.M{"_id": oid}
 
+	res := collection.FindOne(context.Background(), filter)
+	if err := res.Decode(data); err != nil {
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("Cannot FIND blog with specified ID:  %v", err),
+		)
+	}
+
+	//We Update our internal struct
+	data.AuthorID = blog.GetAuthorId()
+	data.Content = blog.GetContent()
+	data.Title = blog.GetTitle()
+
+	_, updateErr := collection.ReplaceOne(context.Background(), filter, data)
+	if updateErr != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("Cannot UPDATE object in MondoDB:  %v", updateErr),
+		)
+	}
+
+	return &blogpb.UpdateBlogResponse{
+		Blog: dataToBlogPb(data),
+	}, nil
+
+}
+
+func (*server) ReadBlog(ctx context.Context, req *blogpb.ReadBlogRequest) (*blogpb.ReadBlogResponse, error) {
+	fmt.Println("Read blog request")
+
+	blogID := req.GetBlogId()
 	oid, err := primitive.ObjectIDFromHex(blogID)
 	if err != nil {
 		return nil, status.Errorf(
@@ -46,30 +87,34 @@ func (*server) ReadBlog(ctx context.Context, req *blogpb.ReadBlogRequest) (*blog
 		)
 	}
 
-	//Create an empty struct
+	// create an empty struct
 	data := &blogItem{}
-
 	filter := bson.M{"_id": oid}
 
 	res := collection.FindOne(context.Background(), filter)
 	if err := res.Decode(data); err != nil {
 		return nil, status.Errorf(
 			codes.NotFound,
-			fmt.Sprintf("Cannot find blog with specified ID:  %v", err),
+			fmt.Sprintf("Cannot find blog with specified ID: %v", err),
 		)
 	}
+
 	return &blogpb.ReadBlogResponse{
-		Blog: &blogpb.Blog{
-			Id:       data.ID.Hex(),
-			AuthorId: data.AuthorID,
-			Content:  data.Content,
-			Title:    data.Title,
-		},
+		Blog: dataToBlogPb(data),
 	}, nil
 }
 
+func dataToBlogPb(data *blogItem) *blogpb.Blog {
+	return &blogpb.Blog{
+		Id:       data.ID.Hex(),
+		AuthorId: data.AuthorID,
+		Content:  data.Content,
+		Title:    data.Title,
+	}
+}
+
 func (*server) CreateBlog(ctx context.Context, req *blogpb.CreateBlogRequest) (*blogpb.CreateBlogResponse, error) {
-	fmt.Println("CREATE BLOG REQUEST was INVOKED")
+	fmt.Println("CREATE BLOG REQUEST")
 	blog := req.GetBlog()
 	data := blogItem{
 		AuthorID: blog.GetAuthorId(),
